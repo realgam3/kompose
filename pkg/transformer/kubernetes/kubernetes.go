@@ -1295,10 +1295,6 @@ func (k *Kubernetes) CreateWorkloadAndConfigMapObjects(name string, service kobj
 		objects = append(objects, k.InitSS(name, service, replica))
 	}
 
-	if opt.Controller == CronJobController {
-		objects = append(objects, k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy))
-	}
-
 	if len(service.EnvFile) > 0 {
 		for _, envFile := range service.EnvFile {
 			configMap := k.InitConfigMapForEnv(name, opt, envFile)
@@ -1628,11 +1624,20 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 			}
 		}
 
+		if service.Restart == "always" && isCronJobController {
+			log.Infof("cronjob restart policy will be converted from '%s' to 'on-failure'", service.Restart)
+			service.Restart = "on-failure"
+		}
+
 		// Generate pod and configmap objects
-		if (service.Restart == "no" || service.Restart == "on-failure") && !opt.IsPodController() && !isCronJobController {
-			log.Infof("Create kubernetes pod instead of pod controller due to restart policy: %s", service.Restart)
-			pod := k.InitPod(name, service)
-			objects = append(objects, pod)
+		if (service.Restart == "no" || service.Restart == "on-failure") && !opt.IsPodController() {
+			if !isCronJobController {
+				log.Infof("Create kubernetes pod instead of pod controller due to restart policy: %s", service.Restart)
+				pod := k.InitPod(name, service)
+				objects = append(objects, pod)
+			} else {
+				objects = append(objects, k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy))
+			}
 
 			if len(service.EnvFile) > 0 {
 				for _, envFile := range service.EnvFile {

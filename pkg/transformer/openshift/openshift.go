@@ -18,6 +18,7 @@ package openshift
 
 import (
 	"fmt"
+	"github.com/kubernetes/kompose/pkg/loader/compose"
 	"os"
 	"sort"
 
@@ -43,6 +44,10 @@ type OpenShift struct {
 	// some of those methods with our own for openshift.
 	kubernetes.Kubernetes
 }
+
+const (
+	CronJobController = "cronjob"
+)
 
 // list of all unsupported keys for this transformer
 // Keys are names of variables in kobject struct.
@@ -325,14 +330,32 @@ func (o *OpenShift) Transform(komposeObject kobject.KomposeObject, opt kobject.C
 			}
 		}
 
+		// check if controller type is set to cronjob
+		isCronJobController := false
+		if val, ok := service.Labels[compose.LabelControllerType]; ok {
+			if val == CronJobController {
+				isCronJobController = true
+			}
+		}
+
+		if service.Restart == "always" && isCronJobController {
+			log.Infof("cronjob restart policy will be converted from '%s' to 'on-failure'", service.Restart)
+			service.Restart = "on-failure"
+		}
+
 		// Generate pod and configmap objects
 		if service.Restart == "no" || service.Restart == "on-failure" {
 			// Error out if Controller Object is specified with restart: 'on-failure'
 			if opt.IsDeploymentConfigFlag {
 				return nil, errors.New("Controller object cannot be specified with restart: 'on-failure'")
 			}
-			pod := o.InitPod(name, service)
-			objects = append(objects, pod)
+
+			if !isCronJobController {
+				pod := o.InitPod(name, service)
+				objects = append(objects, pod)
+			} else {
+				objects = append(objects, o.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy))
+			}
 
 			if len(service.EnvFile) > 0 {
 				for _, envFile := range service.EnvFile {

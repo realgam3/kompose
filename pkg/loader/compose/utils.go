@@ -84,6 +84,11 @@ const (
 
 	// LabelContainerVolumeSubpath defines the volume mount subpath inside container
 	LabelContainerVolumeSubpath = "kompose.volume.subpath"
+
+	// LabelCronJobSchedule defines the cron job schedule
+	LabelCronJobSchedule = "kompose.cronjob.schedule"
+	// LabelCronJobConcurrencyPolicy defines the cron job concurrency policy
+	LabelCronJobConcurrencyPolicy = "kompose.cronjob.concurrency_policy"
 )
 
 // load environment variables from compose file

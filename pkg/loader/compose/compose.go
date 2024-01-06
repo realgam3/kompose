@@ -33,6 +33,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cast"
+	batchv1 "k8s.io/api/batch/v1"
 	api "k8s.io/api/core/v1"
 )
 
@@ -693,6 +694,21 @@ func parseEnvironment(composeServiceConfig *types.ServiceConfig, serviceConfig *
 	}
 }
 
+func handleCronJobConcurrencyPolicy(policy string) (batchv1.ConcurrencyPolicy, error) {
+	switch strings.ToLower(policy) {
+	case "allow":
+		return batchv1.AllowConcurrent, nil
+	case "forbid":
+		return batchv1.ForbidConcurrent, nil
+	case "replace":
+		return batchv1.ReplaceConcurrent, nil
+	case "":
+		return "", nil
+	default:
+		return "", fmt.Errorf("invalid cronjob concurrency policy: %s", policy)
+	}
+}
+
 // parseKomposeLabels parse kompose labels, also do some validation
 func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.ServiceConfig) error {
 	// Label handler
@@ -734,6 +750,14 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 			serviceConfig.ImagePullPolicy = value
 		case LabelContainerVolumeSubpath:
 			serviceConfig.VolumeMountSubPath = value
+		case LabelCronJobSchedule:
+			serviceConfig.CronJobSchedule = value
+		case LabelCronJobConcurrencyPolicy:
+			CronJobConcurrencyPolicy, err := handleCronJobConcurrencyPolicy(value)
+			if err != nil {
+				return errors.Wrap(err, "handleCronJobConcurrencyPolicy failed")
+			}
+			serviceConfig.CronJobConcurrencyPolicy = CronJobConcurrencyPolicy
 		default:
 			serviceConfig.Labels[key] = value
 		}
@@ -753,6 +777,10 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 
 	if len(serviceConfig.Port) > 1 && serviceConfig.NodePortPort != 0 {
 		return errors.New("cannot set kompose.service.nodeport.port when service has multiple ports")
+	}
+
+	if serviceConfig.ServiceType == "cronjob" && serviceConfig.CronJobSchedule == "" {
+		return errors.New("kompose.service.type cronjob was specified without kompose.cronjob.schedule")
 	}
 
 	return nil

@@ -180,7 +180,7 @@ explicitly define the generated resources' behavior upon conversion, like Servic
 The currently supported options are:
 
 | Key                                                 | Value                                                                                |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------ |
+|-----------------------------------------------------|--------------------------------------------------------------------------------------|
 | kompose.service.type                                | nodeport / clusterip / loadbalancer / headless                                       |
 | kompose.service.group                               | name to group the containers contained in a single pod                               |
 | kompose.service.expose                              | true / hostnames (separated by comma)                                                |
@@ -190,7 +190,7 @@ The currently supported options are:
 | kompose.volume.size                                 | kubernetes supported volume size                                                     |
 | kompose.volume.storage-class-name                   | kubernetes supported volume storageClassName                                         |
 | kompose.volume.type                                 | use k8s volume type, eg "configMap", "persistentVolumeClaim", "emptyDir", "hostPath" |
-| kompose.controller.type                             | deployment / daemonset / replicationcontroller / statefulset                         |
+| kompose.controller.type                             | deployment / daemonset / replicationcontroller / statefulset / cronjob               |
 | kompose.image-pull-policy                           | kubernetes pods imagePullPolicy                                                      |
 | kompose.image-pull-secret                           | kubernetes secret name for imagePullSecrets                                          |
 | kompose.service.healthcheck.readiness.disable       | kubernetes readiness disable                                                         |
@@ -205,9 +205,9 @@ The currently supported options are:
 | kompose.service.healthcheck.liveness.http_get_path  | kubernetes liveness httpGet path                                                     |
 | kompose.service.healthcheck.liveness.http_get_port  | kubernetes liveness httpGet port                                                     |
 | kompose.service.healthcheck.liveness.tcp_port       | kubernetes liveness tcpSocket port                                                   |
-| kompose.service.external-traffic-policy       | 'cluster', 'local', ''                                                   |                                                |
-| kompose.security-context.fsgroup       |  kubernetes pod security group fsgroup                                                  |                                                |
-| kompose.volume.sub-path                        | kubernetes volume mount subpath                                                   |                                                |
+| kompose.service.external-traffic-policy             | 'cluster', 'local', ''                                                               |                                                |
+| kompose.security-context.fsgroup                    | kubernetes pod security group fsgroup                                                |                                                |
+| kompose.volume.sub-path                             | kubernetes volume mount subpath                                                      |                                                |
 
 **Note**: `kompose.service.type` label should be defined with `ports` only (except for headless service), otherwise `kompose` will fail.
 

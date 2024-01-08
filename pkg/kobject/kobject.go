@@ -163,6 +163,7 @@ type ServiceConfig struct {
 	FsGroup                  int64                     `compose:"kompose.security-context.fsgroup"`
 	CronJobSchedule          string                    `compose:"kompose.cronjob.schedule"`
 	CronJobConcurrencyPolicy batchv1.ConcurrencyPolicy `compose:"kompose.cronjob.concurrency_policy"`
+	CronJobBackoffLimit      *int32                    `compose:"kompose.cronjob.backoff_limit"`
 	Volumes                  []Volumes                 `compose:""`
 	Secrets                  []types.ServiceSecretConfig
 	HealthChecks             HealthChecks `compose:""`

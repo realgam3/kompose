@@ -190,7 +190,7 @@ The currently supported options are:
 | kompose.volume.size                                 | kubernetes supported volume size                                                     |
 | kompose.volume.storage-class-name                   | kubernetes supported volume storageClassName                                         |
 | kompose.volume.type                                 | use k8s volume type, eg "configMap", "persistentVolumeClaim", "emptyDir", "hostPath" |
-| kompose.controller.type                             | deployment / daemonset / replicationcontroller / statefulset / cronjob               |
+| kompose.controller.type                             | deployment / daemonset / replicationcontroller / statefulset                         |
 | kompose.image-pull-policy                           | kubernetes pods imagePullPolicy                                                      |
 | kompose.image-pull-secret                           | kubernetes secret name for imagePullSecrets                                          |
 | kompose.service.healthcheck.readiness.disable       | kubernetes readiness disable                                                         |
@@ -205,9 +205,12 @@ The currently supported options are:
 | kompose.service.healthcheck.liveness.http_get_path  | kubernetes liveness httpGet path                                                     |
 | kompose.service.healthcheck.liveness.http_get_port  | kubernetes liveness httpGet port                                                     |
 | kompose.service.healthcheck.liveness.tcp_port       | kubernetes liveness tcpSocket port                                                   |
-| kompose.service.external-traffic-policy             | 'cluster', 'local', ''                                                               |                                                |
-| kompose.security-context.fsgroup                    | kubernetes pod security group fsgroup                                                |                                                |
-| kompose.volume.sub-path                             | kubernetes volume mount subpath                                                      |                                                |
+| kompose.service.external-traffic-policy             | 'cluster', 'local', ''                                                               |
+| kompose.security-context.fsgroup                    | kubernetes pod security group fsgroup                                                |
+| kompose.volume.sub-path                             | kubernetes volume mount subpath                                                      |
+| kompose.cronjob.schedule                            | kubernetes cronjob schedule                                                          |
+| kompose.cronjob.concurrency_policy                  | kubernetes cronjob concurrency policy                                                |
+| kompose.cronjob.backoff_limit                       | kubernetes cronjob backoff limit                                                     |
 
 **Note**: `kompose.service.type` label should be defined with `ports` only (except for headless service), otherwise `kompose` will fail.
 
@@ -471,12 +474,12 @@ services:
 If you want to create normal pods without controller you can use `restart` construct of docker-compose to define that. Follow table below to see what happens on the `restart` value.
 
 | `docker-compose` `restart` | object created    | Pod `restartPolicy` |
-| -------------------------- | ----------------- | ------------------- |
+| -------------------------- |-------------------| ------------------- |
 | `""`                       | controller object | `Always`            |
 | `always`                   | controller object | `Always`            |
 | `unless-stopped`           | controller object | `Always`            |
-| `on-failure`               | Pod               | `OnFailure`         |
-| `no`                       | Pod               | `Never`             |
+| `on-failure`               | Pod / CronJob     | `OnFailure`         |
+| `no`                       | Pod / CronJob     | `Never`             |
 
 **Note**: controller object could be `deployment` or `replicationcontroller`, etc.
 
@@ -490,6 +493,22 @@ services:
     image: perl
     command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
     restart: "on-failure"
+```
+
+For e.g. `pival` service will become cronjob down here. This container calculated value of `pi` every minute.
+
+```yaml
+version: '2'
+
+services:
+  pival:
+    image: perl
+    command: ["perl",  "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+    restart: "no"
+    labels:
+      kompose.cronjob.schedule: "* * * * *"
+      kompose.cronjob.concurrency_policy: "Forbid"
+      kompose.cronjob.backoff_limit: "0"
 ```
 
 #### Warning about Deployment Config's

@@ -709,6 +709,18 @@ func handleCronJobConcurrencyPolicy(policy string) (batchv1.ConcurrencyPolicy, e
 	}
 }
 
+func handleCronJobBackoffLimit(backoffLimit string) (*int32, error) {
+	if backoffLimit == "" {
+		return nil, nil
+	}
+
+	limit, err := cast.ToInt32E(backoffLimit)
+	if err != nil {
+		return nil, fmt.Errorf("invalid cronjob backoff limit: %s", backoffLimit)
+	}
+	return &limit, nil
+}
+
 // parseKomposeLabels parse kompose labels, also do some validation
 func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.ServiceConfig) error {
 	// Label handler
@@ -758,6 +770,12 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 				return errors.Wrap(err, "handleCronJobConcurrencyPolicy failed")
 			}
 			serviceConfig.CronJobConcurrencyPolicy = CronJobConcurrencyPolicy
+		case LabelCronJobBackoffLimit:
+			CronJobBackoffLimit, err := handleCronJobBackoffLimit(value)
+			if err != nil {
+				return errors.Wrap(err, "handleCronJobBackoffLimit failed")
+			}
+			serviceConfig.CronJobBackoffLimit = CronJobBackoffLimit
 		default:
 			serviceConfig.Labels[key] = value
 		}

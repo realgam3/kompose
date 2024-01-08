@@ -70,8 +70,6 @@ const (
 	DaemonSetController = "daemonset"
 	// StatefulStateController is controller type for StatefulSet
 	StatefulStateController = "statefulset"
-	// CronJobController is controller type for CronJob
-	CronJobController = "cronjob"
 )
 
 // CheckUnsupportedKey checks if given komposeObject contains
@@ -474,7 +472,7 @@ func (k *Kubernetes) InitSS(name string, service kobject.ServiceConfig, replicas
 }
 
 // InitCJ initializes Kubernetes CronJob object
-func (k *Kubernetes) InitCJ(name string, service kobject.ServiceConfig, schedule string, concurrencyPolicy batchv1.ConcurrencyPolicy) *batchv1.CronJob {
+func (k *Kubernetes) InitCJ(name string, service kobject.ServiceConfig, schedule string, concurrencyPolicy batchv1.ConcurrencyPolicy, backoffLimit *int32) *batchv1.CronJob {
 	ds := &batchv1.CronJob{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CronJob",
@@ -489,6 +487,7 @@ func (k *Kubernetes) InitCJ(name string, service kobject.ServiceConfig, schedule
 			ConcurrencyPolicy: concurrencyPolicy,
 			JobTemplate: batchv1.JobTemplateSpec{
 				Spec: batchv1.JobSpec{
+					BackoffLimit: backoffLimit,
 					Template: api.PodTemplateSpec{
 						Spec: k.InitPodSpec(name, service.Image, service.ImagePullSecret),
 					},
@@ -1295,10 +1294,6 @@ func (k *Kubernetes) CreateWorkloadAndConfigMapObjects(name string, service kobj
 		objects = append(objects, k.InitSS(name, service, replica))
 	}
 
-	if opt.Controller == CronJobController {
-		objects = append(objects, k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy))
-	}
-
 	if len(service.EnvFile) > 0 {
 		for _, envFile := range service.EnvFile {
 			configMap := k.InitConfigMapForEnv(name, opt, envFile)
@@ -1622,17 +1617,26 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 
 		// check if controller type is set to cronjob
 		isCronJobController := false
-		if val, ok := service.Labels[compose.LabelControllerType]; ok {
-			if val == CronJobController {
+		if val, ok := service.Labels[compose.LabelCronJobSchedule]; ok {
+			if val != "" {
 				isCronJobController = true
 			}
 		}
 
-		// Generate pod and configmap objects
-		if (service.Restart == "no" || service.Restart == "on-failure") && !opt.IsPodController() && !isCronJobController {
-			log.Infof("Create kubernetes pod instead of pod controller due to restart policy: %s", service.Restart)
-			pod := k.InitPod(name, service)
-			objects = append(objects, pod)
+		if service.Restart == "always" && isCronJobController {
+			log.Infof("cronjob restart policy will be converted from '%s' to 'on-failure'", service.Restart)
+			service.Restart = "on-failure"
+		}
+
+		// Generate pod or cronjob and configmap objects
+		if (service.Restart == "no" || service.Restart == "on-failure") && !opt.IsPodController() {
+			if !isCronJobController {
+				log.Infof("Create kubernetes pod instead of pod controller due to restart policy: %s", service.Restart)
+				pod := k.InitPod(name, service)
+				objects = append(objects, pod)
+			} else {
+				objects = append(objects, k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy, service.CronJobBackoffLimit))
+			}
 
 			if len(service.EnvFile) > 0 {
 				for _, envFile := range service.EnvFile {

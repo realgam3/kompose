@@ -765,17 +765,19 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 		case LabelCronJobSchedule:
 			serviceConfig.CronJobSchedule = value
 		case LabelCronJobConcurrencyPolicy:
-			CronJobConcurrencyPolicy, err := handleCronJobConcurrencyPolicy(value)
+			cronJobConcurrencyPolicy, err := handleCronJobConcurrencyPolicy(value)
 			if err != nil {
 				return errors.Wrap(err, "handleCronJobConcurrencyPolicy failed")
 			}
-			serviceConfig.CronJobConcurrencyPolicy = CronJobConcurrencyPolicy
+
+			serviceConfig.CronJobConcurrencyPolicy = cronJobConcurrencyPolicy
 		case LabelCronJobBackoffLimit:
-			CronJobBackoffLimit, err := handleCronJobBackoffLimit(value)
+			cronJobBackoffLimit, err := handleCronJobBackoffLimit(value)
 			if err != nil {
 				return errors.Wrap(err, "handleCronJobBackoffLimit failed")
 			}
-			serviceConfig.CronJobBackoffLimit = CronJobBackoffLimit
+
+			serviceConfig.CronJobBackoffLimit = cronJobBackoffLimit
 		default:
 			serviceConfig.Labels[key] = value
 		}
@@ -799,6 +801,11 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 
 	if serviceConfig.ServiceType == "cronjob" && serviceConfig.CronJobSchedule == "" {
 		return errors.New("kompose.service.type cronjob was specified without kompose.cronjob.schedule")
+	}
+
+	if serviceConfig.Restart == "always" && serviceConfig.CronJobConcurrencyPolicy != "" {
+		log.Infof("cronjob restart policy will be converted from '%s' to 'on-failure'", serviceConfig.Restart)
+		serviceConfig.Restart = "on-failure"
 	}
 
 	return nil

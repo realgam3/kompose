@@ -473,7 +473,7 @@ func (k *Kubernetes) InitSS(name string, service kobject.ServiceConfig, replicas
 
 // InitCJ initializes Kubernetes CronJob object
 func (k *Kubernetes) InitCJ(name string, service kobject.ServiceConfig, schedule string, concurrencyPolicy batchv1.ConcurrencyPolicy, backoffLimit *int32) *batchv1.CronJob {
-	ds := &batchv1.CronJob{
+	cj := &batchv1.CronJob{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "CronJob",
 			APIVersion: "batch/v1",
@@ -495,7 +495,7 @@ func (k *Kubernetes) InitCJ(name string, service kobject.ServiceConfig, schedule
 			},
 		},
 	}
-	return ds
+	return cj
 }
 
 func (k *Kubernetes) initIngress(name string, service kobject.ServiceConfig, port int32) *networkingv1.Ingress {
@@ -1615,27 +1615,15 @@ func (k *Kubernetes) Transform(komposeObject kobject.KomposeObject, opt kobject.
 			return nil, err
 		}
 
-		// check if controller type is set to cronjob
-		isCronJobController := false
-		if val, ok := service.Labels[compose.LabelCronJobSchedule]; ok {
-			if val != "" {
-				isCronJobController = true
-			}
-		}
-
-		if service.Restart == "always" && isCronJobController {
-			log.Infof("cronjob restart policy will be converted from '%s' to 'on-failure'", service.Restart)
-			service.Restart = "on-failure"
-		}
-
 		// Generate pod or cronjob and configmap objects
 		if (service.Restart == "no" || service.Restart == "on-failure") && !opt.IsPodController() {
-			if !isCronJobController {
+			if service.CronJobSchedule != "" {
 				log.Infof("Create kubernetes pod instead of pod controller due to restart policy: %s", service.Restart)
+				cronJob := k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy, service.CronJobBackoffLimit)
+				objects = append(objects, cronJob)
+			} else {
 				pod := k.InitPod(name, service)
 				objects = append(objects, pod)
-			} else {
-				objects = append(objects, k.InitCJ(name, service, service.CronJobSchedule, service.CronJobConcurrencyPolicy, service.CronJobBackoffLimit))
 			}
 
 			if len(service.EnvFile) > 0 {

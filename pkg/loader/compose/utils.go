@@ -76,15 +76,12 @@ const (
 	HealthCheckLivenessHTTPGetPort = "kompose.service.healthcheck.liveness.http_get_port"
 	// HealthCheckLivenessTCPPort defines liveness health check tcp port
 	HealthCheckLivenessTCPPort = "kompose.service.healthcheck.liveness.tcp_port"
-
 	// ServiceTypeHeadless ...
 	ServiceTypeHeadless = "Headless"
 	// LabelSecurityContextFsGroup defines the pod FsGroup
 	LabelSecurityContextFsGroup = "kompose.security-context.fsgroup"
-
 	// LabelContainerVolumeSubpath defines the volume mount subpath inside container
 	LabelContainerVolumeSubpath = "kompose.volume.subpath"
-
 	// LabelCronJobSchedule defines the cron job schedule
 	LabelCronJobSchedule = "kompose.cronjob.schedule"
 	// LabelCronJobConcurrencyPolicy defines the cron job concurrency policy

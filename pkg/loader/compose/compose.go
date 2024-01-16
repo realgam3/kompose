@@ -695,12 +695,12 @@ func parseEnvironment(composeServiceConfig *types.ServiceConfig, serviceConfig *
 }
 
 func handleCronJobConcurrencyPolicy(policy string) (batchv1.ConcurrencyPolicy, error) {
-	switch strings.ToLower(policy) {
-	case "allow":
+	switch policy {
+	case "Allow":
 		return batchv1.AllowConcurrent, nil
-	case "forbid":
+	case "Forbid":
 		return batchv1.ForbidConcurrent, nil
-	case "replace":
+	case "Replace":
 		return batchv1.ReplaceConcurrent, nil
 	case "":
 		return "", nil

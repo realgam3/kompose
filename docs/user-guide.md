@@ -208,9 +208,9 @@ The currently supported options are:
 | kompose.service.external-traffic-policy             | 'cluster', 'local', ''                                                               |
 | kompose.security-context.fsgroup                    | kubernetes pod security group fsgroup                                                |
 | kompose.volume.sub-path                             | kubernetes volume mount subpath                                                      |
-| kompose.cronjob.schedule                            | kubernetes cronjob schedule                                                          |
-| kompose.cronjob.concurrency_policy                  | kubernetes cronjob concurrency policy                                                |
-| kompose.cronjob.backoff_limit                       | kubernetes cronjob backoff limit                                                     |
+| kompose.cronjob.schedule                            | kubernetes cronjob schedule (for example: '1 * * * *')                               |
+| kompose.cronjob.concurrency_policy                  | 'Forbid' / 'Allow' / 'Never' / ''                                                    |
+| kompose.cronjob.backoff_limit                       | kubernetes cronjob backoff limit (for example: '6')                                  |
 
 **Note**: `kompose.service.type` label should be defined with `ports` only (except for headless service), otherwise `kompose` will fail.
 

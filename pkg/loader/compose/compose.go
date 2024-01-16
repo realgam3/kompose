@@ -721,6 +721,15 @@ func handleCronJobBackoffLimit(backoffLimit string) (*int32, error) {
 	return &limit, nil
 }
 
+func handleCronJobSchedule(schedule string) (string, error) {
+	if schedule == "" {
+		return "", fmt.Errorf("cronjob schedule cannot be empty")
+	}
+
+	return schedule, nil
+
+}
+
 // parseKomposeLabels parse kompose labels, also do some validation
 func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.ServiceConfig) error {
 	// Label handler
@@ -763,7 +772,12 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 		case LabelContainerVolumeSubpath:
 			serviceConfig.VolumeMountSubPath = value
 		case LabelCronJobSchedule:
-			serviceConfig.CronJobSchedule = value
+			cronJobSchedule, err := handleCronJobSchedule(value)
+			if err != nil {
+				return errors.Wrap(err, "handleCronJobSchedule failed")
+			}
+
+			serviceConfig.CronJobSchedule = cronJobSchedule
 		case LabelCronJobConcurrencyPolicy:
 			cronJobConcurrencyPolicy, err := handleCronJobConcurrencyPolicy(value)
 			if err != nil {
@@ -797,10 +811,6 @@ func parseKomposeLabels(labels map[string]string, serviceConfig *kobject.Service
 
 	if len(serviceConfig.Port) > 1 && serviceConfig.NodePortPort != 0 {
 		return errors.New("cannot set kompose.service.nodeport.port when service has multiple ports")
-	}
-
-	if serviceConfig.ServiceType == "cronjob" && serviceConfig.CronJobSchedule == "" {
-		return errors.New("kompose.service.type cronjob was specified without kompose.cronjob.schedule")
 	}
 
 	if serviceConfig.Restart == "always" && serviceConfig.CronJobConcurrencyPolicy != "" {
